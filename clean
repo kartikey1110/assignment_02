@@ -1,3 +1,68 @@
 #!/usr/bin/env bash
 
 echo "Hello"
+
+gawk -F ',' '
+BEGIN {
+    print "hola"
+    count = 0
+}
+NR==1 {
+    header_cell_count = NF
+    header = ""
+    for(i = 1; i <= NF; i++) {
+        col_header = $i
+        gsub(/[^a-zA-Z0-9_]/, "", col_header)
+        if(col_header == "video_id") {
+            video_id_col = i
+            header = header col_header
+        } else if(col_header == "publish_date") {
+            date_col = i
+            header = header "," col_header
+        } else if(col_header == "views") {
+            views_col = i
+            header = header "," col_header
+        } else if(col_header == "likes") {
+            likes_col = i
+            header = header "," col_header
+        } else if(col_header == "dislikes"){
+            dislikes_col = i
+            header = header "," col_header
+        } else if(col_header == "comments_disabled") {
+            comments_col = i
+            header = header "," col_header
+        } else if(col_header == "ratings_disabled") {
+            #print "test"
+            ratings_col = i
+        }
+    }
+    print header > "output_test.csv"
+}
+NR>1 {
+    #key_array
+    #value_array
+    #print "test"
+    if(NF == header_cell_count) {
+        if(length($1) > 0 && length($2) > 0 && length($3) > 0 && length($4) > 0 && length($5) > 0 && length($6) > 0) {
+            #count++
+            if($4 > 0 && $5 > 0) {
+                #count++
+                time_val = substr($2, 1, 10)
+                row_val = $1 "," time_val "," $3
+                row_val = row_val "," $4 "," $5 "," $6
+                #print row_val
+                if(!(row_val in key_array)) {
+                    key_array[row_val] = 1
+                    #value_array[++count] = row_val
+                    print row_val > "output_test.csv"
+                    count++
+                }
+            }
+            #print "empty video id"
+        } 
+    }
+}
+END{
+    print count
+    #print value_array > 
+}' trending_videos_unclean.csv

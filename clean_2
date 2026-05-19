@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+echo "Hello"
+
+gawk -F ',' '
+BEGIN {
+    print "hola"
+    count = 0
+}
+NR==1 {
+    header_cell_count = NF - 1
+    for(i = 1; i <= NF; i++) {
+        col_header = $i
+        gsub(/[^a-zA-Z0-9_]/, "", col_header)
+        if(col_header == "video_id") {
+            video_id_col = i
+        } else if(col_header == "publish_date") {
+            date_col = i
+        } else if(col_header == "views") {
+            views_col = i
+        } else if(col_header == "likes") {
+            likes_col = i
+        } else if(col_header == "dislikes"){
+            dislikes_col = i
+        } else if(col_header == "comments_disabled") {
+            comments_col = i
+        } else if(col_header == "ratings_disabled") {
+            #print "test"
+            ratings_col = i
+        }
+    }
+}
+NR>1 {
+    #key_array
+    #value_array
+    #print "test"
+    if(NF - 1 == header_cell_count) {
+        if(length($1) == 0) {
+            count++
+            print "empty video id"
+        } 
+    }
+}
+END{
+    print count
+}' trending_videos_unclean.csv
