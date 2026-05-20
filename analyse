@@ -1,23 +1,46 @@
 #!/usr/bin/env bash
 
+#Checking if no input argument is provided. If true program exits
 if [[ $# -eq 0 ]]
 then
     echo "ERROR: No input csv file provided" >&2
     exit 1
 fi
 
+#Checking if input file is present in current directory. If not found then program exits
+if [[ ! -f "$1" ]]
+then
+    echo "ERROR: Input file not found in the current directory" >&2
+    exit 1
+fi
+
+#Checking if input file is in csv format. If not then program exits
+if [[ "$1" != *.csv ]]
+then
+    echo "ERROR: Input file expected in a csv format" >&2
+    exit 1
+fi
+
+#Checking if input file is empty. If empty then program exits
+if [[ ! -s "$1" ]]
+then
+    echo "ERROR: Empty file provided" >&2
+    exit 1
+fi
 
 gawk -F ',' '
 NR==1 {
-    #max_occur_array
+    #initializing variables and contains other variables used but commented in this part.
+    #max_occur_array - to be used for storing data on occurence count of video id
     n_row = 0
     total_views = 0
-    #max_dislike_array
-    #max_engage_array
-    #min_senti_array
+    #max_dislike_array - to be used for storing data on dislike count
+    #max_engage_array - to be used for storing data on engagement rate
+    #min_senti_array - to be used for storing data on net sentiment rate
     
 }
 NR==2 {
+    #seting initial values for all variables based on 1st row of data
     max_occur_array[$1] = 1
     total_views += $3
     n_row = 1
@@ -37,6 +60,7 @@ NR==2 {
     
 }
 NR>2{
+    #adding up views count for calculating mean
     total_views += $3
     n_row++
 
@@ -44,12 +68,19 @@ NR>2{
     dislikes = $5 + 0
     views = $3 + 0
 
+    #updating values of other variables if higher/lower(sentiment rate) value found
+    #multi flag = 1 indicates multiple video ids with highest/lowest value for corresponding data point
+    #multi flag = 0 indicates just 1 video id with highest/lowest value for corresponding data point
+    #in case of multiple video ids for any data point, the required values(id and/or date) are stored as string separated by ##
+
+    #updating data for occurence count
     if($1 in max_occur_array) {
         max_occur_array[$1] = max_occur_array[$1] + 1
     } else {
         max_occur_array[$1] = 1
     }
 
+    #updating data for dislike count
     if(dislikes > max_dislike_array["count"] + 0) {
         max_dislike_array["id"] = $1
         max_dislike_array["count"] = $5
@@ -59,9 +90,11 @@ NR>2{
         max_dislike_array["multi"] = 1
     }
 
+    #Calculating engagement rate and sentiment rate for current row
     eng_rate = ((likes + dislikes) / views)
     senti_rate = ((likes - dislikes) / views)
     
+    #updating engagement rate data
     if(eng_rate > max_engage_array["value"] + 0) {
         max_engage_array["id"] = $1
         max_engage_array["date"] = $2
@@ -73,6 +106,7 @@ NR>2{
         max_engage_array["multi"] = 1
     }
 
+    #updating sentiment rate data
     if(senti_rate < min_senti_array["value"] + 0) {
         min_senti_array["id"] = $1
         min_senti_array["date"] = $2
@@ -87,13 +121,13 @@ NR>2{
     
 }
 END {
-    #print max_occur_array
+    #finding video id with max occurence
     most_freq_id = ""
     most_freq_count = 0
     most_freq_multi = 0
     for(id in max_occur_array) {
         id_count = max_occur_array[id] + 0
-        #print id " : " id_count
+        
         if(id_count > most_freq_count) {
             most_freq_count = id_count
             most_freq_id = id
@@ -104,6 +138,7 @@ END {
         }
     }
 
+    #printing max occurence data
     if(most_freq_multi == 0) {
         print "Most frequent video, ID: " most_freq_id
     } else if(most_freq_multi == 1) {
@@ -114,9 +149,11 @@ END {
         }
     }
     
+    #printing mean views
     mean_views = (total_views / n_row)
     printf "Mean number of views: %.2f\n", mean_views
 
+    #printing max dislike data
     if(max_dislike_array["multi"] + 0 == 0) {
         print "Max dislikes video, ID: " max_dislike_array["id"]
     } else if(max_dislike_array["multi"] + 0 == 1) {
@@ -127,7 +164,7 @@ END {
         }
     }
 
-
+    #printing max engagement rate data
     if(max_engage_array["multi"] + 0 == 0) {
         date = max_engage_array["date"]
         #date_f = substr(date, 7, 4) "-" substr(date, 4, 2) "-" substr(date, 1, 2)
@@ -141,7 +178,7 @@ END {
         }
     }
 
-
+    #printing min sentiment rate data
     if(min_senti_array["multi"] + 0 == 0) {
         date = min_senti_array["date"]
         #date_f = substr(date, 7, 4) "-" substr(date, 4, 2) "-" substr(date, 1, 2)
@@ -154,20 +191,10 @@ END {
             print "ID: " ids[i] ", dated: " dates[i]
         }
     }
-
+    exit 0
     #print "the end"
 }
 ' "$1" 
-
-
-
-
-
-
-
-
-
-
 
 
 
