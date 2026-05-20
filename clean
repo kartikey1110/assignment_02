@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+#checking if no input file is provided. if not provided then program exits
 if [[ $# -eq 0 ]]
 then
     echo "ERROR: No input CSV file provided" >&2
     exit 1
 fi
 
+#checking if input file provided is present in current directory. if not found then program exits.
 if [[ ! -f "$1" ]]
 then
     echo "ERROR: Input file not found in the current
@@ -13,20 +15,24 @@ directory" >&2
     exit 1
 fi
 
+#checking if input file is a csv file. program exits if not a csv file.
 if [[ "$1" != *.csv ]]
 then
     echo "ERROR: Input file expected in a CSV format" >&2
     exit 1
 fi
 
+#checking if input file is empty. if empty then program exits.
 if [[ ! -s "$1" ]]
 then
     echo "ERROR: Empty file provided" >&2
     exit 1
 fi
 
+#getting number of columns from the header of file
 num_cols=$(gawk -F',' 'NR==1 { print NF }' "$1")
 
+#checking if number of columns is 7. if not then program exits.
 if [[ "$num_cols" -ne 7 ]]
 then
     echo "ERROR: Expected 7 columns in the input" >&2
@@ -39,52 +45,67 @@ BEGIN {
     count = 0
 }
 NR==1 {
+    #preparing header row for output file.
+    #this sections also stores column no for each column.
+    #but column index part is commented out as it is not required in current scenario
+
     header_cell_count = NF
     header = ""
     for(i = 1; i <= NF; i++) {
         col_header = $i
         gsub(/[^a-zA-Z0-9_]/, "", col_header)
         if(col_header == "video_id") {
-            video_id_col = i
+            #video_id_col = i
             header = header col_header
         } else if(col_header == "publish_date") {
-            date_col = i
+            #date_col = i
             header = header "," col_header
         } else if(col_header == "views") {
-            views_col = i
+            #views_col = i
             header = header "," col_header
         } else if(col_header == "likes") {
-            likes_col = i
+            #likes_col = i
             header = header "," col_header
         } else if(col_header == "dislikes"){
-            dislikes_col = i
+            #dislikes_col = i
             header = header "," col_header
         } else if(col_header == "comments_disabled") {
-            comments_col = i
+            #comments_col = i
             header = header "," col_header
         } else if(col_header == "ratings_disabled") {
             #print "test"
             ratings_col = i
         }
     }
-    print header > "output_test.csv"
+
+    #writing header to output file
+    print header > "trending_videos_clean.csv"
 }
 NR>1 {
-    #key_array
-    #value_array
+    #key_array - used to find duplicate rows in data.
+    #entire row data is stored as a key in key_array
+    #value_array - not used as we are directly writing row to output csv file
+
+    #implementing all the required filters
+    #outermost condition checks if row has same number of rows as header
     if(NF == header_cell_count) {
+
+        #this condition filters out rows which contains empty cell
         if(length($1) > 0 && length($2) > 0 && length($3) > 0 && length($4) > 0 && length($5) > 0 && length($6) > 0) {
             
+            #this condition filters out rows with 0 likes or dislikes
             if($4 > 0 && $5 > 0) {
                 
+                #converting timestamp to date
                 time_val = substr($2, 1, 10)
+
                 row_val = $1 "," time_val "," $3
                 row_val = row_val "," $4 "," $5 "," $6
-                #print row_val
+                #this condition filters out duplicate rows
                 if(!(row_val in key_array)) {
                     key_array[row_val] = 1
-                    #value_array[++count] = row_val
-                    print row_val > "output_test.csv"
+                    #printng rows which pass all the filters to output csv file
+                    print row_val > "trending_videos_clean.csv"
                     count++
                 }
             }
@@ -94,6 +115,5 @@ NR>1 {
 }
 END{
     exit 0
-    #print count
-    #print value_array > 
+     
 }' "$1"
